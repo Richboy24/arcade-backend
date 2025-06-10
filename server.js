@@ -1,10 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const session = require('express-session');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const JWT_SECRET = 'your-super-secret-key';
 
 const users = {
   jdog: { password: 'rich', balance: 0 },
@@ -14,67 +15,53 @@ let gamePool = {
   pool: 0
 };
 
-// ✅ Fixed CORS
 app.use(cors({
   origin: "https://bargainjoes.com",
   credentials: true
 }));
-
 app.use(bodyParser.json());
 
-// ✅ Correct session setup
-app.use(
-  session({
-    secret: 'arcade-secret',
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      sameSite: 'none',
-      secure: true
-    }
-  })
-);
+// ✅ Middleware to verify the token
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.sendStatus(401);
 
-function authenticateUser(req, res, next) {
-  if (!req.session.username || !users[req.session.username]) {
-    return res.status(401).json({ success: false, message: 'Unauthorized' });
-  }
-  req.user = users[req.session.username];
-  next();
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.username = user.username;
+    next();
+  });
 }
 
 app.get('/', (req, res) => {
-  res.send('Arcade Wallet Backend is running.');
+  res.send('Arcade Wallet Backend (JWT) is running.');
 });
 
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (users[username] && users[username].password === password) {
-    req.session.username = username;
-    res.json({ success: true, message: 'Logged in successfully' });
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '2h' });
+    res.json({ success: true, token });
   } else {
     res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 });
 
-app.post('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.json({ success: true, message: 'Logged out' });
-  });
+app.get('/wallet', authenticateToken, (req, res) => {
+  const user = users[req.username];
+  res.json({ success: true, balance: user.balance });
 });
 
-app.get('/wallet', authenticateUser, (req, res) => {
-  res.json({ success: true, balance: req.user.balance });
-});
-
-app.post('/fund', authenticateUser, (req, res) => {
+app.post('/fund', authenticateToken, (req, res) => {
+  const user = users[req.username];
   const { amount } = req.body;
-  req.user.balance += amount;
-  res.json({ success: true, balance: req.user.balance });
+  user.balance += amount;
+  res.json({ success: true, balance: user.balance });
 });
 
-app.post('/play', authenticateUser, (req, res) => {
-  const user = req.user;
+app.post('/play', authenticateToken, (req, res) => {
+  const user = users[req.username];
 
   if (user.balance < 1) {
     return res.json({ success: false, message: "Insufficient balance." });
@@ -83,8 +70,8 @@ app.post('/play', authenticateUser, (req, res) => {
   user.balance -= 1;
   gamePool.pool += 1;
 
-  let message = "Played game. Good luck!";
   let reward = 0;
+  let message = "Played game. Good luck!";
 
   if (gamePool.pool >= 10) {
     reward = 8;
@@ -102,10 +89,5 @@ app.post('/play', authenticateUser, (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Arcade Wallet Backend listening at http://localhost:${port}`);
-});
-app.get('/check-session', (req, res) => {
-  res.json({
-    username: req.session.username || null
-  });
+  console.log(`Arcade Wallet Backend (JWT) listening on port ${port}`);
 });
