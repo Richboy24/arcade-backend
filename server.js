@@ -16,10 +16,13 @@ let gamePool = {
 };
 
 app.use(cors({
-  origin: "https://bargainjoes.com",
+  origin: [
+    "https://bargainjoes.com",
+    "https://melodious-pithivier-7f942e.netlify.app"
+  ],
   credentials: true
 }));
-app.use(bodyParser.json());
+
 
 // ✅ Middleware to verify the token
 function authenticateToken(req, res, next) {
