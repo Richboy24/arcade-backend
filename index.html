@@ -1,97 +1,105 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>PLINKO</title>
-    <link rel="stylesheet" href="css/reset.css">
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/orientation_utils.css">
+  <meta charset="UTF-8">
+  <title>PLINKO</title>
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/orientation_utils.css">
 </head>
 <body ondragstart="return false;" ondrop="return false;">
-    <canvas id="canvas" class="ani_hack" width="1280" height="1920"></canvas>
-    <div data-orientation="portrait" class="orientation-msg-container">
-        <p class="orientation-msg-text">Please rotate your device</p>
-    </div>
-    <div id="block_game" style="position:fixed;top:0;left:0;width:100%;height:100%;display:none;"></div>
+  <canvas id="canvas" class="ani_hack" width="1280" height="1920"></canvas>
+  <div data-orientation="portrait" class="orientation-msg-container">
+    <p class="orientation-msg-text">Please rotate your device</p>
+  </div>
+  <div id="block_game" style="position:fixed;top:0;left:0;width:100%;height:100%;display:none;"></div>
 
-    <!-- Core Game JS -->
-    <script src="js/jquery-3.2.1.min.js"></script>
-    <script src="js/createjs.min.js"></script>
-    <script src="js/howler.min.js"></script>
-    <script src="js/platform.js"></script>
-    <script src="js/screenfull.js"></script>
-    <script src="js/sprintf.js"></script>
-    <script src="js/ctl_utils.js"></script>
-    <script src="js/sprite_lib.js"></script>
-    <script src="js/settings.js"></script>
-    <script src="js/CLang.js"></script>
-    <script src="js/CPreloader.js"></script>
-    <script src="js/CMain.js"></script>
-    <script src="js/CGame.js"></script>
-    <script src="js/CTextButton.js"></script>
-    <script src="js/CToggle.js"></script>
-    <script src="js/CGfxButton.js"></script>
-    <script src="js/CMenu.js"></script>
-    <script src="js/CInterface.js"></script>
-    <script src="js/CBall.js"></script>
-    <script src="js/CBallGenerator.js"></script>
-    <script src="js/CInsertTubeController.js"></script>
-    <script src="js/CSlot.js"></script>
-    <script src="js/CScoreBasketController.js"></script>
-    <script src="js/CBasket.js"></script>
-    <script src="js/CGUIExpandible.js"></script>
-    <script src="js/CCTLText.js"></script>
+  <!-- Core Game Scripts -->
+  <script src="js/jquery-3.2.1.min.js"></script>
+  <script src="js/createjs.min.js"></script>
+  <script src="js/howler.min.js"></script>
+  <script src="js/platform.js"></script>
+  <script src="js/screenfull.js"></script>
+  <script src="js/sprintf.js"></script>
+  <script src="js/ctl_utils.js"></script>
+  <script src="js/sprite_lib.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/CLang.js"></script>
+  <script src="js/CPreloader.js"></script>
+  <script src="js/CMain.js"></script>
+  <script src="js/CGame.js"></script>
+  <script src="js/CTextButton.js"></script>
+  <script src="js/CToggle.js"></script>
+  <script src="js/CGfxButton.js"></script>
+  <script src="js/CMenu.js"></script>
+  <script src="js/CInterface.js"></script>
+  <script src="js/CBall.js"></script>
+  <script src="js/CBallGenerator.js"></script>
+  <script src="js/CInsertTubeController.js"></script>
+  <script src="js/CSlot.js"></script>
+  <script src="js/CScoreBasketController.js"></script>
+  <script src="js/CBasket.js"></script>
+  <script src="js/CGUIExpandible.js"></script>
+  <script src="js/CCTLText.js"></script>
 
-    <!-- Initialization & Wallet Logic -->
-    <script>
-      $(document).ready(function () {
-        const token = localStorage.getItem('token');
-        const oMain = new CMain({
-          start_credit: 0, start_bet: 10, max_multiplier: 5,
-          bank_cash: 100, prize: [0,20,100,50,0,10],
-          prize_probability: [10,8,1,4,10,10],
-          audio_enable_on_startup:false, show_credits:true,
-          fullscreen:true, check_orientation:true, ad_show_counter:5
-        });
+  <!-- Init + Wallet + Play Logic -->
+  <script>
+    $(document).ready(function () {
+      const token = localStorage.getItem('token');
+      const oMain = new CMain({
+        start_credit: 0, start_bet: 10, max_multiplier: 5,
+        bank_cash: 100,
+        prize: [0,20,100,50,0,10],
+        prize_probability: [10,8,1,4,10,10],
+        audio_enable_on_startup: false,
+        show_credits: true,
+        fullscreen: true,
+        check_orientation: true,
+        ad_show_counter: 5
+      });
 
-        // Wait for s_oGame to exist, then load balance
-        const checkGameReady = setInterval(() => {
-          if (window.s_oGame && typeof s_oGame.setCredit === 'function') {
-            clearInterval(checkGameReady);
-            fetch('https://arcade-backend-cpw2.onrender.com/wallet', {
-              headers: { Authorization: `Bearer ${token}` }
-            })
-            .then(r => r.json())
-            .then(d => {
-              if (d.success) s_oGame.setCredit(d.balance);
-            })
-            .catch(e => console.error('Wallet fetch error', e));
-          }
-        }, 250);
+      // 🔥 Start the actual game so CGame.js runs and sets s_oGame
+      oMain.gotoGame();
 
-        $(oMain).on("bet_placed", () => {
-          fetch('https://arcade-backend-cpw2.onrender.com/play', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({})
+      // Wait until s_oGame is ready, then fetch balance
+      const checkGameReady = setInterval(() => {
+        if (window.s_oGame && typeof s_oGame.setCredit === 'function') {
+          clearInterval(checkGameReady);
+          fetch('https://arcade-backend-cpw2.onrender.com/wallet', {
+            headers: { Authorization: `Bearer ${token}` }
           })
           .then(r => r.json())
           .then(d => {
-            if (d.success && s_oGame) {
-              s_oGame.setCredit(d.balance);
-            } else {
-              alert("Play failed: " + (d.message || "Please try again."));
-            }
+            if (d.success) s_oGame.setCredit(d.balance);
           })
-          .catch(() => alert("Network error during play."));
-        });
+          .catch(e => console.error('Wallet fetch error', e));
+        }
+      }, 250);
 
-        if (isIOS()) setTimeout(sizeHandler, 200);
-        else sizeHandler();
+      // Hook into play event to call backend
+      $(oMain).on("bet_placed", () => {
+        fetch('https://arcade-backend-cpw2.onrender.com/play', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({})
+        })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && s_oGame) {
+            s_oGame.setCredit(d.balance);
+          } else {
+            alert("Play failed: " + (d.message || "Please try again."));
+          }
+        })
+        .catch(() => alert("Network error during play."));
       });
-    </script>
+
+      if (isIOS()) setTimeout(sizeHandler, 200);
+      else sizeHandler();
+    });
+  </script>
 </body>
 </html>
