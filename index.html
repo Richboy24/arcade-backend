@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>PLINKO</title>
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/main.css">
@@ -13,7 +14,7 @@
     </div>
     <div id="block_game" style="position:fixed;top:0;left:0;width:100%;height:100%;display:none;"></div>
 
-    <!-- Core Game Scripts -->
+    <!-- Core Game JS -->
     <script src="js/jquery-3.2.1.min.js"></script>
     <script src="js/createjs.min.js"></script>
     <script src="js/howler.min.js"></script>
@@ -41,58 +42,56 @@
     <script src="js/CGUIExpandible.js"></script>
     <script src="js/CCTLText.js"></script>
 
+    <!-- Initialization & Wallet Logic -->
     <script>
-    $(document).ready(function () {
+      $(document).ready(function () {
         const token = localStorage.getItem('token');
         const oMain = new CMain({
-            start_credit: 0, start_bet: 10, max_multiplier: 5,
-            bank_cash: 100, prize: [0,20,100,50,0,10],
-            prize_probability: [10,8,1,4,10,10],
-            audio_enable_on_startup:false,
-            show_credits:true, fullscreen:true,
-            check_orientation:true, ad_show_counter:5
+          start_credit: 0, start_bet: 10, max_multiplier: 5,
+          bank_cash: 100, prize: [0,20,100,50,0,10],
+          prize_probability: [10,8,1,4,10,10],
+          audio_enable_on_startup:false, show_credits:true,
+          fullscreen:true, check_orientation:true, ad_show_counter:5
         });
 
+        // Wait for s_oGame to exist, then load balance
         const checkGameReady = setInterval(() => {
-            if (window.s_oGame && typeof s_oGame.setCredit === 'function') {
-                clearInterval(checkGameReady);
-                fetch('https://arcade-backend-cpw2.onrender.com/wallet', {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) s_oGame.setCredit(data.balance);
-                })
-                .catch(e => console.error('Wallet fetch error', e));
-            }
+          if (window.s_oGame && typeof s_oGame.setCredit === 'function') {
+            clearInterval(checkGameReady);
+            fetch('https://arcade-backend-cpw2.onrender.com/wallet', {
+              headers: { Authorization: `Bearer ${token}` }
+            })
+            .then(r => r.json())
+            .then(d => {
+              if (d.success) s_oGame.setCredit(d.balance);
+            })
+            .catch(e => console.error('Wallet fetch error', e));
+          }
         }, 250);
 
         $(oMain).on("bet_placed", () => {
-            fetch('https://arcade-backend-cpw2.onrender.com/play', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({})
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && s_oGame) {
-                    s_oGame.setCredit(data.balance);
-                } else {
-                    alert("Play failed: " + (data.message || "Please try again."));
-                }
-            })
-            .catch(() => alert("Network error during play."));
+          fetch('https://arcade-backend-cpw2.onrender.com/play', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({})
+          })
+          .then(r => r.json())
+          .then(d => {
+            if (d.success && s_oGame) {
+              s_oGame.setCredit(d.balance);
+            } else {
+              alert("Play failed: " + (d.message || "Please try again."));
+            }
+          })
+          .catch(() => alert("Network error during play."));
         });
 
-        if (isIOS()) {
-            setTimeout(() => sizeHandler(), 200);
-        } else {
-            sizeHandler();
-        }
-    });
+        if (isIOS()) setTimeout(sizeHandler, 200);
+        else sizeHandler();
+      });
     </script>
 </body>
 </html>
