@@ -12,11 +12,9 @@
   <div data-orientation="portrait" class="orientation-msg-container">
     <p class="orientation-msg-text">Please rotate your device</p>
   </div>
-  <div id="block_game"
-       style="position:fixed;top:0;left:0;width:100%;height:100%;display:none;">
-  </div>
+  <div id="block_game" style="position:fixed;top:0;left:0;width:100%;height:100%;display:none;"></div>
 
-  <!-- Core Game JS -->
+  <!-- Core Game Scripts -->
   <script src="js/jquery-3.2.1.min.js"></script>
   <script src="js/createjs.min.js"></script>
   <script src="js/howler.min.js"></script>
@@ -30,7 +28,7 @@
   <script src="js/CPreloader.js"></script>
   <script src="js/CMain.js"></script>
 
-  <!-- ⚠️ FIX: Include CBoard before CGame -->
+  <!-- 🛠️ FIX: Include CBoard before CGame -->
   <script src="js/CBoard.js"></script>
 
   <script src="js/CGame.js"></script>
@@ -48,16 +46,13 @@
   <script src="js/CGUIExpandible.js"></script>
   <script src="js/CCTLText.js"></script>
 
-  <!-- Initialization + Wallet & Play Logic -->
+  <!-- Initialization & Wallet Integration -->
   <script>
     $(document).ready(function() {
       const token = localStorage.getItem('token');
 
-      // Initialize game engine
       const oMain = new CMain({
-        start_credit: 0,
-        start_bet: 10,
-        max_multiplier: 5,
+        start_credit: 0, start_bet: 10, max_multiplier: 5,
         bank_cash: 100,
         prize: [0,20,100,50,0,10],
         prize_probability: [10,8,1,4,10,10],
@@ -68,23 +63,23 @@
         ad_show_counter: 5
       });
 
-      // 🟢 Start the actual game to properly create s_oGame
+      // 🔥 Start the game—a must for CGame to run and define s_oGame
       oMain.gotoGame();
 
-      // Wait until CGame is initialized, then fetch wallet balance
+      // Fetch wallet balance once the game is ready
       const checkGameReady = setInterval(() => {
         if (window.s_oGame && typeof s_oGame.setCredit === 'function') {
           clearInterval(checkGameReady);
           fetch('https://arcade-backend-cpw2.onrender.com/wallet', {
             headers: { Authorization: `Bearer ${token}` }
           })
-            .then(r => r.json())
-            .then(d => { if (d.success) s_oGame.setCredit(d.balance); })
-            .catch(e => console.error('Wallet fetch error', e));
+          .then(r => r.json())
+          .then(d => { if (d.success) s_oGame.setCredit(d.balance); })
+          .catch(console.error);
         }
       }, 250);
 
-      // Listen for plays and inform backend
+      // Hook into play events
       $(oMain).on('bet_placed', () => {
         fetch('https://arcade-backend-cpw2.onrender.com/play', {
           method: 'POST',
@@ -105,7 +100,6 @@
         .catch(() => alert('Network error during play.'));
       });
 
-      // Resize handler for iOS
       if (isIOS()) setTimeout(sizeHandler, 200);
       else sizeHandler();
     });
