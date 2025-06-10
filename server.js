@@ -34,11 +34,6 @@ app.use(
     }
   })
 );
-  cookie: {
-    sameSite: 'none',
-    secure: true
-  }
-}));
 
 function authenticateUser(req, res, next) {
   if (!req.session.username || !users[req.session.username]) {
