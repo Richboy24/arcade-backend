@@ -23,10 +23,17 @@ app.use(cors({
   credentials: true
 }));
 app.use(bodyParser.json());
-app.use(session({
-  secret: 'arcade-secret',
-  resave: false,
-  saveUninitialized: true,
+app.use(
+  session({
+    secret: 'arcade-secret',
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      sameSite: 'none', // allow cross-site
+      secure: true      // required for HTTPS
+    }
+  })
+);
   cookie: {
     sameSite: 'none',
     secure: true
