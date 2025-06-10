@@ -104,3 +104,8 @@ app.post('/play', authenticateUser, (req, res) => {
 app.listen(port, () => {
   console.log(`Arcade Wallet Backend listening at http://localhost:${port}`);
 });
+app.get('/check-session', (req, res) => {
+  res.json({
+    username: req.session.username || null
+  });
+});
