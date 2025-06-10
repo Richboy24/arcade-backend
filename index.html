@@ -15,7 +15,6 @@
   <div id="block_game" style="position:fixed;top:0;left:0;width:100%;height:100%;display:none;"></div>
 
   <!-- Core Game Scripts -->
-  <!-- (Ensure these file paths match your deployed folders) -->
   <script src="js/jquery-3.2.1.min.js"></script>
   <script src="js/createjs.min.js"></script>
   <script src="js/howler.min.js"></script>
@@ -43,32 +42,39 @@
   <script src="js/CGUIExpandible.js"></script>
   <script src="js/CCTLText.js"></script>
 
-  <!-- Init + Game Start + Wallet + Play Logic -->
+  <!-- Initialization & Wallet Integration -->
   <script>
     $(document).ready(function() {
       const token = localStorage.getItem('token');
 
-      // Create and start the game
-      const oMain = new CMain({ /* your config */ });
+      // Create the main game object
+      const oMain = new CMain({
+        start_credit: 0, start_bet: 10, max_multiplier: 5,
+        bank_cash: 100, prize: [0,20,100,50,0,10],
+        prize_probability: [10,8,1,4,10,10],
+        audio_enable_on_startup: false,
+        show_credits: true, fullscreen: true,
+        check_orientation: true, ad_show_counter: 5
+      });
+
+      // ✅ Start the Plinko game — this triggers CGame initialization and sets s_oGame
       oMain.gotoGame();
 
-      // Wait for CGame to be ready then fetch balance
-      const interval = setInterval(() => {
+      // Wait for the game to load, then fetch wallet balance
+      const checkGameReady = setInterval(() => {
         if (window.s_oGame && typeof s_oGame.setCredit === 'function') {
-          clearInterval(interval);
+          clearInterval(checkGameReady);
           fetch('https://arcade-backend-cpw2.onrender.com/wallet', {
             headers: { Authorization: `Bearer ${token}` }
           })
-            .then(r => r.json())
-            .then(d => {
-              if (d.success) s_oGame.setCredit(d.balance);
-            })
-            .catch(console.error);
+          .then(r => r.json())
+          .then(d => { if (d.success) s_oGame.setCredit(d.balance); })
+          .catch(e => console.error('Wallet fetch error', e));
         }
       }, 250);
 
-      // Play events trigger backend calls
-      $(oMain).on("bet_placed", function() {
+      // Listen for plays and call backend
+      $(oMain).on('bet_placed', () => {
         fetch('https://arcade-backend-cpw2.onrender.com/play', {
           method: 'POST',
           headers: {
@@ -77,17 +83,18 @@
           },
           body: JSON.stringify({})
         })
-          .then(r => r.json())
-          .then(d => {
-            if (d.success && s_oGame) {
-              s_oGame.setCredit(d.balance);
-            } else {
-              alert("Play failed: " + (d.message || "Try again."));
-            }
-          })
-          .catch(() => alert("Network error during play."));
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && s_oGame) {
+            s_oGame.setCredit(d.balance);
+          } else {
+            alert('Play failed: ' + (d.message || 'Please try again.'));
+          }
+        })
+        .catch(() => alert('Network error during play.'));
       });
 
+      // Resize handling
       if (isIOS()) setTimeout(sizeHandler, 200);
       else sizeHandler();
     });
