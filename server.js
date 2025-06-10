@@ -142,3 +142,54 @@ app.post('/admin/approve', (req, res) => {
     return res.status(404).send('User not found');
   }
 });
+// In-memory deposit requests
+const depositRequests = [];
+
+// Handle deposit request (called after redirect from payment page)
+app.post('/deposit-request', authenticateToken, (req, res) => {
+  const { amount } = req.body;
+  const username = req.username;
+
+  depositRequests.push({ username, amount, timestamp: new Date() });
+  res.json({ success: true, message: 'Deposit request submitted' });
+});
+
+// Admin panel (password protected by query param for now)
+app.get('/admin', (req, res) => {
+  const { password } = req.query;
+
+  if (password !== 'amin24') {
+    return res.status(403).send('Access Denied');
+  }
+
+  const html = `
+    <h1>Deposit Requests</h1>
+    ${depositRequests.map((req, index) => `
+      <div style="margin-bottom: 1em;">
+        <strong>${req.username}</strong> requested <strong>$${req.amount}</strong> on ${req.timestamp.toLocaleString()}
+        <form method="POST" action="/admin/approve" style="display:inline;">
+          <input type="hidden" name="username" value="${req.username}" />
+          <input type="hidden" name="amount" value="${req.amount}" />
+          <input type="hidden" name="index" value="${index}" />
+          <button type="submit">Approve</button>
+        </form>
+      </div>
+    `).join('')}
+  `;
+  res.send(html);
+});
+
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.post('/admin/approve', (req, res) => {
+  const { username, amount, index } = req.body;
+
+  if (users[username]) {
+    users[username].balance += parseFloat(amount);
+    depositRequests.splice(index, 1); // remove approved
+    return res.redirect('/admin?password=amin24');
+  } else {
+    return res.status(404).send('User not found');
+  }
+});
+
