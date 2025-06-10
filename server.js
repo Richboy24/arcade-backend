@@ -1,4 +1,3 @@
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const session = require('express-session');
@@ -15,22 +14,23 @@ let gamePool = {
   pool: 0
 };
 
+// ✅ Fixed CORS
 app.use(cors({
   origin: "https://bargainjoes.com",
   credentials: true
 }));
-  origin: true,
-  credentials: true
-}));
+
 app.use(bodyParser.json());
+
+// ✅ Correct session setup
 app.use(
   session({
     secret: 'arcade-secret',
     resave: false,
     saveUninitialized: true,
     cookie: {
-      sameSite: 'none', // allow cross-site
-      secure: true      // required for HTTPS
+      sameSite: 'none',
+      secure: true
     }
   })
 );
