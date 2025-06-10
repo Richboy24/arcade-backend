@@ -16,6 +16,9 @@ let gamePool = {
 };
 
 app.use(cors({
+  origin: "https://bargainjoes.com",
+  credentials: true
+}));
   origin: true,
   credentials: true
 }));
