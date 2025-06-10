@@ -27,6 +27,10 @@
   <script src="js/CLang.js"></script>
   <script src="js/CPreloader.js"></script>
   <script src="js/CMain.js"></script>
+
+  <!-- Added missing board logic -->
+  <script src="js/CBoard.js"></script>
+
   <script src="js/CGame.js"></script>
   <script src="js/CTextButton.js"></script>
   <script src="js/CToggle.js"></script>
@@ -46,21 +50,21 @@
   <script>
     $(document).ready(function() {
       const token = localStorage.getItem('token');
-
-      // Create the main game object
       const oMain = new CMain({
         start_credit: 0, start_bet: 10, max_multiplier: 5,
         bank_cash: 100, prize: [0,20,100,50,0,10],
         prize_probability: [10,8,1,4,10,10],
         audio_enable_on_startup: false,
-        show_credits: true, fullscreen: true,
-        check_orientation: true, ad_show_counter: 5
+        show_credits: true,
+        fullscreen: true,
+        check_orientation: true,
+        ad_show_counter: 5
       });
 
-      // ✅ Start the Plinko game — this triggers CGame initialization and sets s_oGame
+      // 🔥 Start the game (must be before using s_oGame)
       oMain.gotoGame();
 
-      // Wait for the game to load, then fetch wallet balance
+      // Load wallet balance when s_oGame is ready
       const checkGameReady = setInterval(() => {
         if (window.s_oGame && typeof s_oGame.setCredit === 'function') {
           clearInterval(checkGameReady);
@@ -73,7 +77,7 @@
         }
       }, 250);
 
-      // Listen for plays and call backend
+      // Hook into play events
       $(oMain).on('bet_placed', () => {
         fetch('https://arcade-backend-cpw2.onrender.com/play', {
           method: 'POST',
