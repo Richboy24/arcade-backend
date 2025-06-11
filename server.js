@@ -38,6 +38,31 @@ function authenticateToken(req, res, next) {
   });
 }
 
+app.post('/signup', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username and password are required' });
+  }
+
+  const users = loadUsers();
+  const existing = users.find(u => u.username === username);
+  if (existing) {
+    return res.status(409).json({ message: 'Username already exists' });
+  }
+
+  const newUser = {
+    username,
+    password,
+    balance: 0
+  };
+
+  users.push(newUser);
+  saveUsers(users);
+
+  const token = jwt.sign({ username: username }, SECRET, { expiresIn: '2h' });
+  res.status(201).json({ token });
+});
+
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   const users = loadUsers();
@@ -84,5 +109,5 @@ app.post('/payout', authenticateToken, (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log('Arcade Wallet Backend (with CORS) running on port', PORT);
+  console.log('Arcade Wallet Backend (with CORS & Signup) running on port', PORT);
 });
