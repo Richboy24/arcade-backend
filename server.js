@@ -111,3 +111,29 @@ app.post('/payout', authenticateToken, (req, res) => {
 app.listen(PORT, () => {
   console.log('Arcade Wallet Backend (with CORS & Signup) running on port', PORT);
 });
+const ADMIN_PASSWORD = 'admin24'; // Admin password for panel
+
+app.get('/users', (req, res) => {
+  const auth = req.headers['authorization'];
+  if (auth !== ADMIN_PASSWORD) return res.sendStatus(403);
+  const users = loadUsers();
+  res.json(users);
+});
+
+app.post('/update-balance', (req, res) => {
+  const auth = req.headers['authorization'];
+  if (auth !== ADMIN_PASSWORD) return res.sendStatus(403);
+
+  const { username, balance } = req.body;
+  if (typeof username !== 'string' || typeof balance !== 'number') {
+    return res.status(400).json({ message: 'Invalid input' });
+  }
+
+  const users = loadUsers();
+  const user = users.find(u => u.username === username);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+
+  user.balance = balance;
+  saveUsers(users);
+  res.json({ message: 'Balance updated', balance });
+});
